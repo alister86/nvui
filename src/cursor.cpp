@@ -125,12 +125,12 @@ void Cursor::init_animations()
     auto scaled = animation_scaler(finished);
     cur_x = old_x + (destination_x - old_x) * scaled;
     cur_y = old_y + (destination_y - old_y) * scaled;
-    emit anim_state_changed();
+    Q_EMIT anim_state_changed();
   });
   move_animation.on_stop([this] {
     cur_x = destination_x;
     cur_y = destination_y;
-    emit anim_state_changed();
+    Q_EMIT anim_state_changed();
   });
   effect_animation.on_update([this] {
     auto percent_finished = effect_animation.percent_finished();
@@ -145,7 +145,7 @@ void Cursor::init_animations()
         break;
       default: return;
     }
-    emit anim_state_changed();
+    Q_EMIT anim_state_changed();
   });
   effect_animation.on_stop([this] {
     opacity_level = 1.0;
@@ -159,7 +159,7 @@ void Cursor::init_animations()
         break;
       default: break;
     }
-    emit anim_state_changed();
+    Q_EMIT anim_state_changed();
   });
   effect_animation.set_duration(1);
   effect_animation.set_interval(16);
@@ -303,7 +303,7 @@ void Cursor::hide() noexcept
 {
   if (status != CursorStatus::Hidden && !busy())
   {
-    emit cursor_hidden();
+    Q_EMIT cursor_hidden();
     status = CursorStatus::Hidden;
   }
 }
@@ -312,7 +312,7 @@ void Cursor::show() noexcept
 {
   if (status != CursorStatus::Visible && !busy())
   {
-    emit cursor_visible();
+    Q_EMIT cursor_visible();
     status = CursorStatus::Visible;
   }
 }

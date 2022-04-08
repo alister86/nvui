@@ -256,7 +256,7 @@ void D2DEditor::set_vsync(bool sync)
   device_context->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
   device_context->SetDpi(default_dpi, default_dpi);
   vsync = sync;
-  emit render_targets_updated();
+  Q_EMIT render_targets_updated();
   update();
 }
 
@@ -306,7 +306,7 @@ void D2DEditor::set_fonts(std::span<FontDesc> fontlist)
     );
   }
   update_font_metrics();
-  emit layouts_invalidated();
+  Q_EMIT layouts_invalidated();
 }
 
 void D2DEditor::linespace_changed(float)
@@ -317,7 +317,7 @@ void D2DEditor::linespace_changed(float)
 void D2DEditor::charspace_changed(float)
 {
   update_font_metrics();
-  emit layouts_invalidated();
+  Q_EMIT layouts_invalidated();
 }
 
 void D2DEditor::update_font_metrics()

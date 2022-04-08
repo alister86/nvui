@@ -47,7 +47,7 @@ public:
   MenuButton(TitleBar* parent, QColor hov = Qt::transparent)
     : MenuButton(static_cast<QWidget*>(nullptr), hov)
   {
-    resize_move_handler = [parent](QPointF p) { emit parent->resize_move(p); };
+    resize_move_handler = [parent](QPointF p) { Q_EMIT parent->resize_move(p); };
   }
 
   void set_hov_bg(const QColor& bg)

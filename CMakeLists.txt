@@ -29,7 +29,8 @@ if(MSVC)
   #C4702 - Msgpack
   #C4127 - Qt
   #C4458 - fmt
-  add_compile_options(/W4 /WX /wd5054 /wd4459 /wd4458 /wd4244 /wd4127 /wd4702)
+  add_compile_options(/W4 /WX- /wd5054 /wd4459 /wd4458 /wd4244 /wd4127 /wd4702)
+  #add_definitions(-DQT_NO_KEYWORDS)
   set(CMAKE_CXX_FLAGS_RELEASE /O2 /DNDEBUG)
 else()
   add_compile_options(-Wall -Wextra -pedantic -Werror -Wfatal-errors -Wno-language-extension-token -Wno-unknown-pragmas)
@@ -94,6 +95,8 @@ if (WIN32)
   file(GLOB WINONLYSOURCES
     src/platform/windows/*.cpp
     src/platform/windows/*.hpp
+    resource.h
+    resource.rc
   )
   list(APPEND SOURCES ${WINONLYSOURCES})
 endif()
@@ -115,6 +118,10 @@ if(WIN32)
 		dwmapi
 		d3d11
   )
+endif()
+if (MSVC)
+  set_property(TARGET nvui PROPERTY LINK_FLAGS_RELEASE "/SUBSYSTEM:WINDOWS")
+  set_property(TARGET nvui PROPERTY LINK_FLAGS_RELEASE "/ENTRY:mainCRTStartup")
 endif()
 if (Boost_FOUND)
   target_include_directories(nvui PRIVATE ${Boost_INCLUDE_DIR})

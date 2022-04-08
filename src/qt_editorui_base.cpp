@@ -198,6 +198,11 @@ void QtEditorUIBase::send_mouse_input(
   {
     return;
   }
+  // fix double click at different cell
+  if ((mouse.row != row || mouse.col != col) && mouse.click_count > 1)
+  {
+    mods = mods.substr(0, mods.size() - 1);
+  }
   mouse.gridid = grid_num;
   mouse.row = row;
   mouse.col = col;
@@ -381,10 +386,10 @@ void QtEditorUIBase::register_command_handlers()
   const auto on = [&](auto&&... args) { listen_for_notification(args...); };
   on("NVUI_WINOPACITY", paramify<float>([this](double opacity) {
     if (opacity <= 0.0 || opacity > 1.0) return;
-    emit signaller.window_opacity_changed(opacity);
+    Q_EMIT signaller.window_opacity_changed(opacity);
   }));
   on("NVUI_TOGGLE_FRAMELESS", [this](const auto&) {
-    emit signaller.titlebar_toggled();
+    Q_EMIT signaller.titlebar_toggled();
   });
   on("NVUI_CHARSPACE", paramify<float>([this](float space) {
     charspace = space;
@@ -452,35 +457,35 @@ void QtEditorUIBase::register_command_handlers()
     cmdline->set_padding(padding);
   }));
   on("NVUI_FULLSCREEN", paramify<bool>([this](bool b) {
-    emit signaller.fullscreen_set(b);
+    Q_EMIT signaller.fullscreen_set(b);
   }));
   on("NVUI_TOGGLE_FULLSCREEN", [this](auto) {
-    emit signaller.fullscreen_toggled();
+    Q_EMIT signaller.fullscreen_toggled();
   });
   on("NVUI_TITLEBAR_FONT_FAMILY", paramify<QString>([this](QString family) {
-    emit signaller.titlebar_font_family_set(family);
+    Q_EMIT signaller.titlebar_font_family_set(family);
   }));
   on("NVUI_TITLEBAR_FONT_SIZE", paramify<double>([&](double sz) {
-    emit signaller.titlebar_font_size_set(sz);
+    Q_EMIT signaller.titlebar_font_size_set(sz);
   }));
   on("NVUI_TITLEBAR_COLORS",
     paramify<QString, QString>([this](QString fg, QString bg) {
       QColor fgc = fg, bgc = bg;
       if (!fgc.isValid() || !bgc.isValid()) return;
-      emit signaller.titlebar_fg_bg_set(fgc, bgc);
+      Q_EMIT signaller.titlebar_fg_bg_set(fgc, bgc);
   }));
   on("NVUI_TITLEBAR_UNSET_COLORS", [this](auto) {
-    emit signaller.titlebar_colors_unset();
+    Q_EMIT signaller.titlebar_colors_unset();
   });
   on("NVUI_TITLEBAR_FG", paramify<QString>([this](QString fgs) {
     QColor fg = fgs;
     if (!fg.isValid()) return;
-    emit signaller.titlebar_fg_set(fg);
+    Q_EMIT signaller.titlebar_fg_set(fg);
   }));
   on("NVUI_TITLEBAR_BG", paramify<QString>([this](QString bgs) {
     QColor bg = bgs;
     if (!bg.isValid()) return;
-    emit signaller.titlebar_bg_set(bg);
+    Q_EMIT signaller.titlebar_bg_set(bg);
   }));
   on("NVUI_MOVE_ANIMATION_FRAMETIME", paramify<int>([this](int ms) {
     move_animation.set_interval(ms);
@@ -510,7 +515,7 @@ void QtEditorUIBase::register_command_handlers()
         set_scaler(GridBase::move_scaler, s);
   }));
   on("NVUI_FRAMELESS", paramify<bool>([this](bool b) {
-    emit signaller.titlebar_set(b);
+    Q_EMIT signaller.titlebar_set(b);
   }));
   on("NVUI_CURSOR_HIDE_TYPE",
     paramify<bool>([this](bool hide) {
@@ -519,7 +524,7 @@ void QtEditorUIBase::register_command_handlers()
   }));
   on("NVUI_TB_TITLE",
     paramify<QString>([this](QString text) {
-      emit signaller.title_changed(text);
+      Q_EMIT signaller.title_changed(text);
   }));
   on("NVUI_IME_SET",
     paramify<bool>([this](bool enable) {
@@ -555,20 +560,20 @@ void QtEditorUIBase::register_command_handlers()
       nvim->err_write("Editor index cannot be negative.\n");
       return;
     }
-    emit signaller.editor_switched(std::size_t(index));
+    Q_EMIT signaller.editor_switched(std::size_t(index));
   }));
   on("NVUI_DIR_CHANGED", paramify<std::string>([this](std::string dir) {
     cwd = std::move(dir);
-    emit signaller.cwd_changed(current_dir());
+    Q_EMIT signaller.cwd_changed(current_dir());
   }));
   on("NVUI_EDITOR_PREV", [this](const auto&) {
-    emit signaller.editor_changed_previous();
+    Q_EMIT signaller.editor_changed_previous();
   });
   on("NVUI_EDITOR_NEXT", [this](const auto&) {
-    emit signaller.editor_changed_next();
+    Q_EMIT signaller.editor_changed_next();
   });
   on("NVUI_EDITOR_SELECT", [this](const auto&) {
-    emit signaller.editor_selection_list_opened();
+    Q_EMIT signaller.editor_selection_list_opened();
   });
   using namespace std;
   handle_request<vector<string>, int>(*nvim, "NVUI_SCALER_NAMES",
@@ -715,13 +720,13 @@ u32 QtEditorUIBase::snapshot_limit() const { return snapshot_count; }
 
 void QtEditorUIBase::do_close()
 {
-  emit signaller.closed();
+  Q_EMIT signaller.closed();
 }
 
 void QtEditorUIBase::default_colors_changed(Color fg, Color bg)
 {
   send_redraw();
-  emit signaller.default_colors_changed(fg.qcolor(), bg.qcolor());
+  Q_EMIT signaller.default_colors_changed(fg.qcolor(), bg.qcolor());
 }
 
 void QtEditorUIBase::field_updated(std::string_view field, const Object& val)
@@ -782,7 +787,7 @@ void QtEditorUIBase::spawn_editor_with_params(const Object& params)
       nvim->err_write("Some arguments to nvim were not strings.\n");
     }
   }
-  emit signaller.editor_spawned(nvim_path, std::move(capabilities), std::move(args));
+  Q_EMIT signaller.editor_spawned(nvim_path, std::move(capabilities), std::move(args));
 }
 
 std::string QtEditorUIBase::current_dir() const { return cwd; }

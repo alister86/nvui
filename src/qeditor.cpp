@@ -209,7 +209,7 @@ void QEditor::update_font_metrics()
   auto* popup = static_cast<PopupMenuQ*>(popup_menu.get());
   popup->font_changed(first_font, font_dimensions());
   screen_resized(width(), height());
-  emit font_changed();
+  Q_EMIT font_changed();
 }
 
 void QEditor::create_grid(u32 x, u32 y, u32 w, u32 h, u64 id)

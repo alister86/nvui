@@ -475,7 +475,7 @@ void Window::changeEvent(QEvent* event)
 {
   if (event->type() == QEvent::WindowStateChange)
   {
-    emit win_state_changed(windowState());
+    Q_EMIT win_state_changed(windowState());
     auto ev = static_cast<QWindowStateChangeEvent*>(event);
     prev_state = ev->oldState();
   }
@@ -577,10 +577,14 @@ void Window::closeEvent(QCloseEvent* event)
 
 void Window::save_state()
 {
-  Config::set("window/geometry", geometry());
+  if (!isMaximized())
+  {
+    Config::set("window/geometry", geometry());
+  }
   Config::set("window/frameless", is_frameless());
-  Config::set("window/fullscreen", isFullScreen());
-  Config::set("window/maximized", isMaximized());
+  // don't recode fullscreen and maximized states.
+  //Config::set("window/fullscreen", isFullScreen());
+  //Config::set("window/maximized", isMaximized());
 }
 
 bool Window::load_config()
@@ -591,16 +595,16 @@ bool Window::load_config()
     setGeometry(geom.value<QRect>());
     set = true;
   }
-  if (auto fs = Config::get("window/fullscreen"); fs.canConvert<bool>())
-  {
-    set_fullscreen(fs.toBool());
-    set = true;
-  }
-  if (auto maxim = Config::get("window/maximized"); maxim.canConvert<bool>())
-  {
-    showMaximized();
-    set = true;
-  }
+  //if (auto fs = Config::get("window/fullscreen"); fs.canConvert<bool>())
+  //{
+  //  set_fullscreen(fs.toBool());
+  //  set = true;
+  //}
+  //if (auto maxim = Config::get("window/maximized"); maxim.canConvert<bool>())
+  //{
+  //  showMaximized();
+  //  set = true;
+  //}
   if (auto frameless = Config::get("window/frameless"); frameless.canConvert<bool>())
   {
     frameless.toBool() ? enable_frameless_window() : disable_frameless_window();
