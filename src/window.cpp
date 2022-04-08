@@ -69,6 +69,7 @@ Window::Window(
 : QMainWindow(parent),
   resizing(false),
   title_bar(std::make_unique<TitleBar>("nvui", this)),
+  tab_bar(std::make_unique<TabBar>(this)),
   editor_stack(new QStackedWidget())
 {
   bool loaded = load_config();

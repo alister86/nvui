@@ -12,6 +12,7 @@
 #include "nvim.hpp"
 #include "qeditor.hpp"
 #include "titlebar.hpp"
+#include "tabbar.hpp"
 #include "hlstate.hpp"
 #include <iostream>
 #include <memory>
@@ -145,6 +146,7 @@ private:
   bool maximized = false;
   bool moving = false;
   std::unique_ptr<TitleBar> title_bar;
+  std::unique_ptr<TabBar> tab_bar;
   QFlags<Qt::WindowState> prev_state;
   QColor default_fg = Qt::white;
   QColor default_bg = Qt::black;

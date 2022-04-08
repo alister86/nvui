@@ -141,6 +141,7 @@ private:
   QLabel* label;
   QHBoxLayout* layout;
   QWidget* titlebar_widget;
+  QTabBar* tab_widget;
 public slots:
   void minimize_maximize();
   void colors_changed(QColor fg, QColor bg);

@@ -30,7 +30,6 @@ if(MSVC)
   #C4127 - Qt
   #C4458 - fmt
   add_compile_options(/W4 /WX- /wd5054 /wd4459 /wd4458 /wd4244 /wd4127 /wd4702)
-  #add_definitions(-DQT_NO_KEYWORDS)
   set(CMAKE_CXX_FLAGS_RELEASE /O2 /DNDEBUG)
 else()
   add_compile_options(-Wall -Wextra -pedantic -Werror -Wfatal-errors -Wno-language-extension-token -Wno-unknown-pragmas)
@@ -49,6 +48,8 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 file(GLOB SOURCES
   src/titlebar.hpp
   src/titlebar.cpp
+  src/tabbar.hpp
+  src/tabbar.cpp
   src/utils.cpp
   src/nvim.hpp
   src/nvim.cpp
@@ -98,6 +99,11 @@ if (WIN32)
     resource.h
     resource.rc
   )
+  if (MSVC)
+    file(GLOB WINONLYSOURCES
+      .editorconfig
+    )
+  endif()
   list(APPEND SOURCES ${WINONLYSOURCES})
 endif()
 find_package(Boost COMPONENTS filesystem thread REQUIRED)
