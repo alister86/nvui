@@ -68,10 +68,10 @@ Window::Window(
 )
 : QMainWindow(parent),
   resizing(false),
-  title_bar(std::make_unique<TitleBar>("nvui", this)),
-  tab_bar(std::make_unique<TabBar>(this)),
   editor_stack(new QStackedWidget())
 {
+  title_bar.reset();
+  tab_bar.reset();
   bool loaded = load_config();
   auto* editor_area = new EditorType(
     width, height, std::move(capabilities), std::move(nvp), std::move(nva)
@@ -90,9 +90,10 @@ Window::Window(
     const auto [font_width, font_height] = editor_area->font_dimensions();
     resize(width * font_width, height * font_height);
   }
-  if (custom_titlebar) enable_frameless_window();
-  else title_bar->hide();
-  QObject::connect(title_bar.get(), &TitleBar::resize_move, this, &Window::resize_or_move);
+
+  if (custom_titlebar)
+    enable_frameless_window();
+
   setWindowIcon(QIcon(constants::appicon()));
   connect_editor_signals(*editor_area);
   editor_area->setFocus();
@@ -155,7 +156,7 @@ void Window::connect_editor_signals(EditorType& editor)
     else enable_frameless_window();
   });
   connect(signaller, &UISignaller::titlebar_set, this, [this](bool tb) {
-    if (tb) { enable_frameless_window(); title_bar->show(); }
+    if (tb) { enable_frameless_window(); if (title_bar) title_bar->show(); }
     else disable_frameless_window();
   });
   connect(signaller, &UISignaller::titlebar_toggled, this, [this] {
@@ -166,13 +167,13 @@ void Window::connect_editor_signals(EditorType& editor)
     setWindowOpacity(opa);
   });
   connect(signaller, &UISignaller::titlebar_font_family_set, this, [this](QString f) {
-    title_bar->set_font_family(f);
+    if (title_bar) title_bar->set_font_family(f);
   });
   connect(signaller, &UISignaller::titlebar_font_size_set, this, [this](double ps) {
-    title_bar->set_font_size(ps);
+    if (title_bar) title_bar->set_font_size(ps);
   });
   connect(signaller, &UISignaller::title_changed, this, [this](QString title) {
-    title_bar->set_title_text(title);
+    if (title_bar) title_bar->set_title_text(title);
   });
   connect(signaller, &UISignaller::titlebar_fg_set, this, [this](QColor fg) {
     titlebar_colors.first = fg;
@@ -371,7 +372,6 @@ void Window::resize_or_move(const QPointF& p)
       std::cout << "Move didn't work\n";
     }
   }
-  title_bar->update_maxicon();
 }
 
 void Window::mousePressEvent(QMouseEvent* event)
@@ -412,7 +412,6 @@ void Window::mouseMoveEvent(QMouseEvent* event)
 
 void Window::resizeEvent(QResizeEvent* event)
 {
-  title_bar->update_maxicon();
   QMainWindow::resizeEvent(event);
 }
 
@@ -431,7 +430,6 @@ void Window::moveEvent(QMoveEvent* event)
     return;
   }
 #endif
-  title_bar->update_maxicon();
   QMainWindow::moveEvent(event);
 }
 
@@ -439,7 +437,8 @@ void Window::disable_frameless_window()
 {
   auto flags = windowFlags();
   if (!(flags & Qt::FramelessWindowHint)) /* Already disabled */ return;
-  if (title_bar) title_bar->hide();
+  destroy_titlebar();
+  destroy_tabbar();
   flags &= ~Qt::FramelessWindowHint;
 #ifdef Q_OS_WIN
   remove_margin((HWND) winId());
@@ -452,7 +451,10 @@ void Window::enable_frameless_window()
 {
   auto flags = windowFlags();
   if (flags & Qt::FramelessWindowHint) /* Already enabled */ return;
-  if (title_bar) title_bar->show();
+  if (is_tabbar)
+    switch_to_tabbar();
+  else
+    switch_to_titlebar();
   flags |= Qt::FramelessWindowHint;
   setWindowFlags(flags);
 #ifdef Q_OS_WIN
@@ -460,6 +462,55 @@ void Window::enable_frameless_window()
 #endif
   // Kick the window out of any maximized/fullscreen state.
   showNormal();
+}
+
+void Window::switch_to_tabbar()
+{
+  destroy_titlebar();
+  create_tabbar();
+  is_tabbar = true;
+}
+
+void Window::switch_to_titlebar()
+{
+  destroy_tabbar();
+  create_titlebar();
+  is_tabbar = false;
+}
+
+void Window::create_tabbar()
+{
+  if (tab_bar)
+    return;
+  tab_bar = std::make_unique<TabBar>(this);
+  QObject::connect(this, &Window::win_state_changed, tab_bar.get(), &TabBar::win_state_changed);
+}
+
+void Window::destroy_tabbar()
+{
+  if (!tab_bar)
+    return;
+  setMenuWidget(nullptr);
+  tab_bar->deleteLater();
+  tab_bar.release();
+}
+
+void Window::create_titlebar()
+{
+  if (title_bar)
+    return;
+  title_bar = std::make_unique<TitleBar>("nvui", this);
+  QObject::connect(this, &Window::win_state_changed, title_bar.get(), &TitleBar::win_state_changed);
+  QObject::connect(title_bar.get(), &TitleBar::resize_move, this, &Window::resize_or_move);
+}
+
+void Window::destroy_titlebar()
+{
+  if (!title_bar)
+    return;
+  setMenuWidget(nullptr);
+  title_bar->deleteLater();
+  title_bar.release();
 }
 
 void Window::set_fullscreen(bool enable_fullscreen)
@@ -523,7 +574,8 @@ void Window::maximize()
 void Window::fullscreen()
 {
   if (isFullScreen()) return;
-  title_bar->hide();
+  if (title_bar) title_bar->hide();
+  if (tab_bar) tab_bar->hide();
 #ifdef Q_OS_WIN
   if (is_frameless())
   {
@@ -546,14 +598,15 @@ void Window::un_fullscreen()
 #endif
   if (prev_state & Qt::WindowMaximized) maximize();
   else showNormal();
-  show_title_bar();
+  if (title_bar) title_bar->show();
+  if (tab_bar) tab_bar->show();
 }
 
 void Window::update_titlebar_colors(QColor fg, QColor bg)
 {
   auto foreground = titlebar_colors.first.value_or(fg);
   auto background = titlebar_colors.second.value_or(bg);
-  title_bar->colors_changed(foreground, background);
+  if (title_bar) title_bar->colors_changed(foreground, background);
 }
 
 void Window::closeEvent(QCloseEvent* event)
@@ -583,6 +636,7 @@ void Window::save_state()
     Config::set("window/geometry", geometry());
   }
   Config::set("window/frameless", is_frameless());
+  Config::set("window/tabbar", is_tabbar);
   // don't recode fullscreen and maximized states.
   //Config::set("window/fullscreen", isFullScreen());
   //Config::set("window/maximized", isMaximized());
@@ -609,6 +663,12 @@ bool Window::load_config()
   if (auto frameless = Config::get("window/frameless"); frameless.canConvert<bool>())
   {
     frameless.toBool() ? enable_frameless_window() : disable_frameless_window();
+    // tabbar
+    auto tabbar = Config::get("window/tabbar");
+    if (tabbar.canConvert<bool>() && tabbar.toBool())
+      switch_to_tabbar();
+    else
+      switch_to_titlebar();
     set = true;
   }
   return set;

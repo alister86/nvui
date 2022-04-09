@@ -91,26 +91,13 @@ private:
    * so windowState() & Qt::FramelessWindowHint should be false.
    */
   void enable_frameless_window();
-  /**
-   * Hides the title bar.
-   * This just always hides it,
-   * since there is no reason not to, unlike with showing.
-   */
-  inline void hide_title_bar()
-  {
-    title_bar->hide();
-  }
-  
-  /**
-   * Shows the titlebar. Only activates if the window is a
-   * frameless window (otherwise you would get two title bars,
-   * the OS one and the custom one).
-   */
-  inline void show_title_bar()
-  {
-    if (!is_frameless()) return;
-    title_bar->show();
-  }
+
+  void switch_to_tabbar();
+  void switch_to_titlebar();
+  void create_tabbar();
+  void destroy_tabbar();
+  void create_titlebar();
+  void destroy_titlebar();
 
   /**
    * If fullscreen is true, shows the window in fullscreen mode,
@@ -142,9 +129,11 @@ private:
   void select_editor_from_dialog();
   QtEditorUIBase& current_editor();
   void update_default_colors(QColor fg, QColor bg);
+
   bool resizing;
   bool maximized = false;
   bool moving = false;
+  bool is_tabbar = false;
   std::unique_ptr<TitleBar> title_bar;
   std::unique_ptr<TabBar> tab_bar;
   QFlags<Qt::WindowState> prev_state;
@@ -154,6 +143,7 @@ private:
   using opt = std::optional<T>;
   std::pair<opt<QColor>, opt<QColor>> titlebar_colors;
   QStackedWidget* editor_stack;
+
 signals:
   void win_state_changed(Qt::WindowStates new_state);
   void default_colors_changed(QColor fg, QColor bg);

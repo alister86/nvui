@@ -227,7 +227,7 @@ TitleBar::TitleBar(QString text, Window* window)
   titlebar_widget = new QWidget();
   titlebar_widget->setLayout(layout);
   titlebar_widget->setStyleSheet("background-color: " % background.name() % "; color: " % foreground.name() % ";");
-  //win->setMenuWidget(titlebar_widget);
+  win->setMenuWidget(titlebar_widget);
   const QSize size {menu_width, menu_height};
   close_btn->setFixedSize(size);
   min_btn->setFixedSize(size);

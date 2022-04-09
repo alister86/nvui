@@ -96,15 +96,16 @@ if (WIN32)
   file(GLOB WINONLYSOURCES
     src/platform/windows/*.cpp
     src/platform/windows/*.hpp
-    resource.h
-    resource.rc
   )
+  list(APPEND SOURCES ${WINONLYSOURCES})
   if (MSVC)
-    file(GLOB WINONLYSOURCES
+      file(GLOB WINRESOURCES
+      resource.h
+      resource.rc
       .editorconfig
     )
+    list(APPEND SOURCES ${WINRESOURCES})
   endif()
-  list(APPEND SOURCES ${WINONLYSOURCES})
 endif()
 find_package(Boost COMPONENTS filesystem thread REQUIRED)
 if(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Release")

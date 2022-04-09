@@ -18,11 +18,6 @@
 #include <QStyle>
 #include <QTabBar>
 
-/// MenuButtons for our TabBar that inherit from QPushButton
-/// These have overridden the default hover events to provide
-/// support for custom resizing as well as background changing
-/// on hover. For more info, see the implementation
-class MenuButton;
 
 class Window;
 
@@ -30,17 +25,34 @@ class Window;
 class TabBar : public QWidget
 {
   Q_OBJECT
+
 public:
   TabBar(Window* window);
-//public slots:
-//  void minimize_maximize();
+
+public slots:
+  void minimize_maximize();
+  void win_state_changed(Qt::WindowStates state);
+
 //  void colors_changed(QColor fg, QColor bg);
-//  void win_state_changed(Qt::WindowStates state);
 //signals:
 //  void resize_move(QPointF p);
 
-  QLabel* label;
-  QHBoxLayout* layout;
+protected:
+  void mouseDoubleClickEvent(QMouseEvent* mevent);
+
+private:
+  QIcon get_icon(QStyle::StandardPixmap sp) const;
+  QPushButton* create_menu_btn(const QIcon& icon) const;
+  QPushButton* create_min_btn() const;
+  QPushButton* create_max_btn() const;
+  QPushButton* create_close_btn() const;
+
+  QColor foreground;
+  QColor background;
+  Window* win;
+  QPushButton* close_btn;
+  QPushButton* max_btn;
+  QPushButton* min_btn;
   QTabBar* tabbar;
 };
 #endif
