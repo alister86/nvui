@@ -211,6 +211,15 @@ void Window::connect_editor_signals(EditorType& editor)
   connect(signaller, &UISignaller::editor_selection_list_opened, this, [this] {
     select_editor_from_dialog();
   });
+  connect(signaller, &UISignaller::tabbar_buf_enter, this, [this](int bufn, QString name, QString path) {
+    tab_bar->buffer_enter(bufn, name, path);
+  });
+  connect(signaller, &UISignaller::tabbar_buf_leave, this, [this](int bufn, QString name, QString path) {
+    tab_bar->buffer_leave(bufn, name, path);
+  });
+  connect(signaller, &UISignaller::tabbar_buf_delete, this, [this](int bufn, QString name, QString path) {
+    tab_bar->buffer_delete(bufn, name, path);
+  });
 }
 
 void Window::select_editor_from_dialog()

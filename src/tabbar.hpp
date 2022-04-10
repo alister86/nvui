@@ -21,6 +21,13 @@
 
 class Window;
 
+struct TabInfo
+{
+  int bufn;
+  QString name;
+  QString path;
+};
+
 /// Custom tabbar implementation that operates on the Window class.
 class TabBar : public QWidget
 {
@@ -33,9 +40,10 @@ public slots:
   void minimize_maximize();
   void win_state_changed(Qt::WindowStates state);
 
-//  void colors_changed(QColor fg, QColor bg);
-//signals:
-//  void resize_move(QPointF p);
+public:
+  void buffer_enter(int bufn, QString name, QString path);
+  void buffer_leave(int bufn, QString name, QString path);
+  void buffer_delete(int bufn, QString name, QString path);
 
 protected:
   void mouseDoubleClickEvent(QMouseEvent* mevent);
@@ -46,6 +54,11 @@ private:
   QPushButton* create_min_btn() const;
   QPushButton* create_max_btn() const;
   QPushButton* create_close_btn() const;
+  void tab_create(int bufn, QString name, QString path);
+  void tab_enter(int bufn);
+  void tab_leave(int bufn);
+  void tab_delete(int bufn);
+  int get_tab_index(int bufn);
 
   QColor foreground;
   QColor background;
@@ -54,5 +67,6 @@ private:
   QPushButton* max_btn;
   QPushButton* min_btn;
   QTabBar* tabbar;
+  std::unordered_map<int, TabInfo> tabinfomap;
 };
 #endif

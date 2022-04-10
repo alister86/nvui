@@ -575,37 +575,17 @@ void QtEditorUIBase::register_command_handlers()
   on("NVUI_EDITOR_SELECT", [this](const auto&) {
     Q_EMIT signaller.editor_selection_list_opened();
   });
-  on("NVUI_BB_BUFADD",
-    paramify<int, std::string>([this](int bufn, std::string path) {
-      printf("BufAdd: %d, %s\n", bufn, path.c_str());
+  on("NVUI_TB_BUFENTER",
+    paramify<int, std::string, std::string>([this](int bufn, std::string name, std::string path) {
+      Q_EMIT signaller.tabbar_buf_enter(bufn, QString::fromStdString(name), QString::fromStdString(path));
   }));
-  on("NVUI_BB_BUFDELETE",
-    paramify<int>([this](int bufn) {
-      printf("BufDelete: %d\n", bufn);
+  on("NVUI_TB_BUFLEAVE",
+    paramify<int, std::string, std::string>([this](int bufn, std::string name, std::string path) {
+      Q_EMIT signaller.tabbar_buf_leave(bufn, QString::fromStdString(name), QString::fromStdString(path));
   }));
-  on("NVUI_BB_BUFENTER",
-    paramify<int>([this](int bufn) {
-      printf("BufEnter: %d\n", bufn);
-  }));
-  on("NVUI_BB_BUFFILEPOST",
-    paramify<int, std::string>([this](int bufn, std::string path) {
-      printf("BufFilePost: %d, %s\n", bufn, (char*)path.data());
-  }));
-  on("NVUI_BB_BUFLEAVE",
-    paramify<int>([this](int bufn) {
-      printf("BufLeave: %d\n", bufn);
-  }));
-  on("NVUI_BB_BUFNEW",
-    paramify<int, std::string>([this](int bufn, std::string path) {
-      printf("BufNew: %d, %s\n", bufn, (char*)path.data());
-  }));
-  on("NVUI_BB_BUFNEWFILE",
-    paramify<int, std::string>([this](int bufn, std::string path) {
-      printf("BufNewFile: %d, %s\n", bufn, (char*)path.data());
-  }));
-  on("NVUI_BB_BUFWRITEPOST",
-    paramify<int, std::string>([this](int bufn, std::string path) {
-      printf("BufWritePost: %d, %s\n", bufn, (char*)path.data());
+  on("NVUI_TB_BUFDELETE",
+    paramify<int, std::string, std::string>([this](int bufn, std::string name, std::string path) {
+      Q_EMIT signaller.tabbar_buf_delete(bufn, QString::fromStdString(name), QString::fromStdString(path));
   }));
   using namespace std;
   handle_request<vector<string>, int>(*nvim, "NVUI_SCALER_NAMES",
@@ -721,42 +701,33 @@ void QtEditorUIBase::register_command_handlers()
   function! NvuiGetTitle()
     return NvuiGet_title()
   endfunction
-  function! NvuiIsNormalBuf()
-    let bufid = str2nr(expand('<abuf>'))
-    let buftype = getbufvar(bufid, '&buftype', 'error')
-    return v:true
-  endfunction
-  function! NvuiBufId()
-    return str2nr(expand('<abuf>'))
-  endfunction
-  function! NvuiBufpath()
-    return expand('<afile>:p')
-  endfunction
-  function! NvuiBufType()
-    return getbufvar(str2nr(expand('<abuf>')), '&buftype', 'error')
-  endfunction
-  function! NvuiTest()
-    let bufid = str2nr(expand('<abuf>'))
-    let buftype = getbufvar(bufid, '&buftype', 'error')
-    call rpcnotify('NVUI_BB_BUFADD', 9, 'abcdefg')
-  endfunction
+lua << EOF
+  function tabbar_delay_call(rpcname)
+    local bufid = tonumber(vim.fn.expand('<abuf>'))
+    local bufname = vim.fn.expand('<afile>')
+    local bufpath = vim.fn.expand('<afile>:p')
+    local timer = vim.loop.new_timer()
+    local callback = function()
+      local rpc_chan = vim.api.nvim_get_var('nvui_rpc_chan') or 0
+      local buftype = vim.fn.getbufvar(bufid, '&buftype', 'error')
+      if buftype == '' then
+        vim.rpcnotify(rpc_chan, rpcname, bufid, bufname, bufpath)
+      end
+    end
+    timer:start(0, 0, vim.schedule_wrap(callback))
+  end
+EOF
   augroup nvui_autocmds
     autocmd!
     autocmd BufEnter * call rpcnotify(g:nvui_rpc_chan, 'NVUI_TB_TITLE', NvuiGetTitle())
     autocmd DirChanged * call rpcnotify(g:nvui_rpc_chan, 'NVUI_TB_TITLE', NvuiGetTitle())
     autocmd DirChanged * call rpcnotify(g:nvui_rpc_chan, 'NVUI_DIR_CHANGED', getcwd())
-    autocmd BufEnter *      call rpcnotify(g:nvui_rpc_chan, 'NVUI_BB_BUFADD',       NvuiBufId(), getbufvar(str2nr(expand('<abuf>')), '&buftype', 'error'))
+    autocmd BufEnter * lua tabbar_delay_call('NVUI_TB_BUFENTER')
+    autocmd BufLeave * lua tabbar_delay_call('NVUI_TB_BUFLEAVE')
+    autocmd BufDelete * lua tabbar_delay_call('NVUI_TB_BUFDELETE')
   augroup END
   call rpcnotify(g:nvui_rpc_chan, 'NVUI_DIR_CHANGED', getcwd())
   )");
-    //autocmd BufAdd *       if NvuiIsNormalBuf() == v:true | call rpcnotify(g:nvui_rpc_chan, 'NVUI_BB_BUFADD',       NvuiBufId(), NvuiBufpath()) | endif
-    //autocmd BufDelete *    if NvuiIsNormalBuf() == v:true | call rpcnotify(g:nvui_rpc_chan, 'NVUI_BB_BUFDELETE',    NvuiBufId())                | endif
-    //autocmd BufEnter *     if NvuiIsNormalBuf() == v:true | call rpcnotify(g:nvui_rpc_chan, 'NVUI_BB_BUFENTER',     NvuiBufId())                | endif
-    //autocmd BufFilePost *  if NvuiIsNormalBuf() == v:true | call rpcnotify(g:nvui_rpc_chan, 'NVUI_BB_BUFFILEPOST',  NvuiBufId(), NvuiBufpath()) | endif
-    //autocmd BufLeave *     if NvuiIsNormalBuf() == v:true | call rpcnotify(g:nvui_rpc_chan, 'NVUI_BB_BUFLEAVE',     NvuiBufId())                | endif
-    //autocmd BufNew *       if NvuiIsNormalBuf() == v:true | call rpcnotify(g:nvui_rpc_chan, 'NVUI_BB_BUFNEW',       NvuiBufId(), NvuiBufpath()) | endif
-    //autocmd BufNewFile *   if NvuiIsNormalBuf() == v:true | call rpcnotify(g:nvui_rpc_chan, 'NVUI_BB_BUFNEWFILE',   NvuiBufId(), NvuiBufpath()) | endif
-    //autocmd BufWritePost * if NvuiIsNormalBuf() == v:true | call rpcnotify(g:nvui_rpc_chan, 'NVUI_BB_BUFWRITEPOST', NvuiBufId(), NvuiBufpath()) | endif
   auto script_dir = constants::script_dir().toStdString();
   nvim->command(fmt::format("helptags {}", script_dir + "/doc"));
   nvim->command(fmt::format("set rtp+={}", script_dir));

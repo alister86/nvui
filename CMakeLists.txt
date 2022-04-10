@@ -99,9 +99,10 @@ if (WIN32)
   )
   list(APPEND SOURCES ${WINONLYSOURCES})
   if (MSVC)
-      file(GLOB WINRESOURCES
+    file(GLOB WINRESOURCES
       resource.h
       resource.rc
+      nvui.natvis
       .editorconfig
     )
     list(APPEND SOURCES ${WINRESOURCES})

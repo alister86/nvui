@@ -17,6 +17,7 @@
 #include <QScreen>
 #include <QSize>
 #include <QWindow>
+#include <QFileInfo>
 #include <QtCore/QStringBuilder>
 #include "constants.hpp"
 #include "window.hpp"
@@ -51,11 +52,8 @@ TabBar::TabBar(Window* window)
   tabbar->setMouseTracking(true);
   tabbar->setFocusPolicy(Qt::NoFocus);
   tabbar->setFixedHeight(bar_height - 5);
-  tabbar->addTab("file 0");
-  tabbar->addTab("file 1");
-  tabbar->addTab("file 2");
-  tabbar->addTab("file 3");
-  tabbar->addTab("file 4");
+  tabbar->setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Fixed);
+  tabbar->setStyleSheet("QTabBar::tab { max-width: 200px; }");
 
   auto tablayout = new QVBoxLayout();
   tablayout->addStretch();
@@ -72,7 +70,7 @@ TabBar::TabBar(Window* window)
   layout->setMargin(0);
   layout->addWidget(app_icon);
   layout->addLayout(tablayout);
-  layout->addStretch();
+  //layout->addStretch();
   layout->addWidget(min_btn);
   layout->addWidget(max_btn);
   layout->addWidget(close_btn);
@@ -160,3 +158,73 @@ void TabBar::mouseDoubleClickEvent(QMouseEvent* mevent)
 {
   minimize_maximize();
 }
+
+void TabBar::buffer_enter(int bufn, QString name, QString path)
+{
+  if (tabinfomap.find(bufn) == tabinfomap.end())
+  {
+    tab_create(bufn, name, path);
+    tabinfomap[bufn] = { bufn, name, path };
+  }
+  tab_enter(bufn);
+}
+
+void TabBar::buffer_leave(int bufn, QString name, QString path)
+{
+  if (tabinfomap.find(bufn) != tabinfomap.end())
+  {
+    tab_leave(bufn);
+  }
+}
+
+void TabBar::buffer_delete(int bufn, QString name, QString path)
+{
+  if (tabinfomap.find(bufn) != tabinfomap.end())
+  {
+    tab_delete(bufn);
+    tabinfomap.erase(bufn);
+  }
+}
+
+void TabBar::tab_create(int bufn, QString name, QString path)
+{
+  int index = tabbar->addTab(name);
+  tabbar->setTabToolTip(index, path);
+  tabbar->setTabData(index, QVariant(bufn));
+}
+
+void TabBar::tab_enter(int bufn)
+{
+  if (int i = get_tab_index(bufn); i >= 0)
+  {
+    if (tabbar->currentIndex() != i)
+    {
+      tabbar->setCurrentIndex(i);
+    }
+  }
+}
+
+void TabBar::tab_leave(int bufn)
+{
+}
+
+void TabBar::tab_delete(int bufn)
+{
+  if (int i = get_tab_index(bufn); i >= 0)
+  {
+    tabbar->removeTab(i);
+  }
+}
+
+int TabBar::get_tab_index(int bufn)
+{
+  for (int i = 0; i < tabbar->count(); ++i)
+  {
+    if (bufn == tabbar->tabData(i).toInt())
+    {
+      return i;
+    }
+  }
+  return -1;
+}
+

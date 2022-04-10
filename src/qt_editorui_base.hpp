@@ -48,6 +48,10 @@ signals:
   // Open a selection list to see and switch between currently open
   // editor instances.
   void editor_selection_list_opened();
+  // Tabbar
+  void tabbar_buf_enter(int bufn, QString name, QString path);
+  void tabbar_buf_leave(int bufn, QString name, QString path);
+  void tabbar_buf_delete(int bufn, QString name, QString path);
 };
 
 // Does not inherit from a widget type,
