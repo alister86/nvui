@@ -37,11 +37,14 @@ constexpr int tolerance = 10; //10px tolerance for resizing
 class Window : public QMainWindow
 {
   Q_OBJECT
+
+public:
 #if defined(USE_DIRECT2D)
   using EditorType = D2DEditor;
 #elif defined(USE_QPAINTER)
   using EditorType = QEditor;
 #endif
+
 public:
   Window(
     std::string nvim_path,
@@ -73,6 +76,16 @@ public slots:
    * These signals get emitted by its UISignaller.
    */
   void connect_editor_signals(EditorType&);
+
+  QStackedWidget* get_editor_stack()
+  {
+    return editor_stack;
+  }
+  EditorType* get_current_editor()
+  {
+    return (EditorType*)editor_stack->currentWidget();
+  }
+
 private:
   /// Save current window state and settings.
   void save_state();

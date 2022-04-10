@@ -26,6 +26,18 @@ static const QColor mm_light = "#665c74";
 static const QColor mm_dark = "#3d4148";
 static const int bar_height = 32;
 
+QString normal_bufname(QString name)
+{
+  if (name.isEmpty())
+    return QString("No Name");
+  int i = name.lastIndexOf("/");
+  if (i < 0)
+    i = name.lastIndexOf("\\");
+  if (i >= 0)
+    return name.right(name.length() - i - 1);
+  return name;
+}
+
 TabBar::TabBar(Window* window)
   : QWidget(window)
   , win(window)
@@ -52,8 +64,8 @@ TabBar::TabBar(Window* window)
   tabbar->setMouseTracking(true);
   tabbar->setFocusPolicy(Qt::NoFocus);
   tabbar->setFixedHeight(bar_height - 5);
-  tabbar->setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Fixed);
-  tabbar->setStyleSheet("QTabBar::tab { max-width: 200px; }");
+  //tabbar->setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Fixed);
+  tabbar->setExpanding(false);
 
   auto tablayout = new QVBoxLayout();
   tablayout->addStretch();
@@ -70,7 +82,7 @@ TabBar::TabBar(Window* window)
   layout->setMargin(0);
   layout->addWidget(app_icon);
   layout->addLayout(tablayout);
-  //layout->addStretch();
+  layout->addStretch();
   layout->addWidget(min_btn);
   layout->addWidget(max_btn);
   layout->addWidget(close_btn);
@@ -81,6 +93,9 @@ TabBar::TabBar(Window* window)
   QObject::connect(min_btn, SIGNAL(clicked()), win, SLOT(showMinimized()));
   QObject::connect(max_btn, SIGNAL(clicked()), this, SLOT(minimize_maximize()));
   QObject::connect(close_btn, SIGNAL(clicked()), win, SLOT(close()));
+  QObject::connect(tabbar, SIGNAL(tabCloseRequested(int)), this, SLOT(on_tab_close_requested(int)));
+  QObject::connect(tabbar, SIGNAL(currentChanged(int)), this, SLOT(on_current_changed(int)));
+  QObject::connect(tabbar, SIGNAL(tabMoved(int, int)), this, SLOT(on_tab_moved(int, int)));
 }
 
 QIcon TabBar::get_icon(QStyle::StandardPixmap sp) const
@@ -161,6 +176,7 @@ void TabBar::mouseDoubleClickEvent(QMouseEvent* mevent)
 
 void TabBar::buffer_enter(int bufn, QString name, QString path)
 {
+  name = normal_bufname(name);
   if (tabinfomap.find(bufn) == tabinfomap.end())
   {
     tab_create(bufn, name, path);
@@ -226,5 +242,36 @@ int TabBar::get_tab_index(int bufn)
     }
   }
   return -1;
+}
+
+void TabBar::on_tab_close_requested(int index)
+{
+  int bufn = tabbar->tabData(index).toInt();
+  printf("close requested: %d, %d\n", index, bufn);
+  // close tab
+  tabbar->removeTab(index);
+  // nvim command
+  char command[32];
+  sprintf(command, "bd %d", index);
+  // send command
+  Nvim* nvim = win->get_current_editor()->get_nvim();
+  nvim->command(command);
+}
+
+void TabBar::on_current_changed(int index)
+{
+  int bufn = tabbar->tabData(index).toInt();
+  printf("current changed: %d, %d\n", index, bufn);
+  // nvim command
+  char command[32];
+  sprintf(command, "b %d", index);
+  // send command
+  Nvim* nvim = win->get_current_editor()->get_nvim();
+  nvim->command(command);
+}
+
+void TabBar::on_tab_moved(int from, int to)
+{
+  printf("moved: %d, %d\n", from, to);
 }
 

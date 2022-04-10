@@ -61,6 +61,7 @@ public:
   void confirm_qa();
   bool nvim_exited() const;
   virtual ~EditorBase();
+  Nvim* get_nvim() { return nvim.get(); }
 private:
   /**
    * Handles a Neovim "grid_resize" event.

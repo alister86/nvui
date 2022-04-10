@@ -39,6 +39,9 @@ public:
 public slots:
   void minimize_maximize();
   void win_state_changed(Qt::WindowStates state);
+  void on_tab_close_requested(int index);
+  void on_current_changed(int index);
+  void on_tab_moved(int from, int to);
 
 public:
   void buffer_enter(int bufn, QString name, QString path);
